@@ -11,6 +11,8 @@ let io = require("socket.io-client");
      * @param {boolean} [options.getOnInit] get all Keys from the Server on init(), Default = true
      * @param {boolean} [options.logStateInterval] logs the sharedState every 5sec to the console, Default = false
      * @param {boolean} [options.logToConsole] if things should get logged to console, Default = false
+     * @param {boolean} [options.logFunction] function to call for log messages, overrides logToConsole
+     * @param {boolean} [options.errorFunction] function to call for error messages, overrides logToConsole
      * @param {boolean} [options.autoPresence] set presence to "online" on connect, Default = true
      * @returns {Object} SharedState
      * @author Andreas Bosl <bosl@irt.de>
@@ -44,19 +46,6 @@ let io = require("socket.io-client");
 
         var _stateChanges = {};
 
-
-        var _log = function (text, datagram) {
-            if (options.logToConsole === true) {
-                console.info(text, datagram);
-            }
-        };
-
-        var _error = function (text, datagram) {
-            if (options.logToConsole === true) {
-                console.error(text, datagram);
-            }
-        };
-
         /* <!-- defaults */
         options = options || {};
         if (options instanceof String) {
@@ -81,6 +70,16 @@ let io = require("socket.io-client");
         }
         options.forceNew = true;
         options.multiplex = false;
+
+        var _log = function() {};
+        var _error = function() {};
+
+        if (options.logToConsole === true) {
+            _log = console.info.bind(console);
+            _error = console.error.bind(console);
+        }
+        if (options.logFunction) _log = options.logFunction;
+        if (options.errorFunction) _error = options.errorFunction;
 
         url = url || {};
         /* defaults --> */
