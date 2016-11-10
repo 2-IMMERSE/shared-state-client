@@ -16,6 +16,8 @@ var io = require("socket.io-client");
  * @param {boolean} [options.getOnInit] get all Keys from the Server on init(), Default = true
  * @param {boolean} [options.logStateInterval] logs the sharedState every 5sec to the console, Default = false
  * @param {boolean} [options.logToConsole] if things should get logged to console, Default = false
+ * @param {boolean} [options.logFunction] function to call for log messages, overrides logToConsole
+ * @param {boolean} [options.errorFunction] function to call for error messages, overrides logToConsole
  * @param {boolean} [options.autoPresence] set presence to "online" on connect, Default = true
  * @returns {Object} SharedState
  * @author Andreas Bosl <bosl@irt.de>
@@ -49,18 +51,6 @@ var SharedState = function SharedState(url, options) {
 
     var _stateChanges = {};
 
-    var _log = function _log(text, datagram) {
-        if (options.logToConsole === true) {
-            console.info(text, datagram);
-        }
-    };
-
-    var _error = function _error(text, datagram) {
-        if (options.logToConsole === true) {
-            console.error(text, datagram);
-        }
-    };
-
     /* <!-- defaults */
     options = options || {};
     if (options instanceof String) {
@@ -85,6 +75,16 @@ var SharedState = function SharedState(url, options) {
     }
     options.forceNew = true;
     options.multiplex = false;
+
+    var _log = function _log() {};
+    var _error = function _error() {};
+
+    if (options.logToConsole === true) {
+        _log = console.info.bind(console);
+        _error = console.error.bind(console);
+    }
+    if (options.logFunction) _log = options.logFunction;
+    if (options.errorFunction) _error = options.errorFunction;
 
     url = url || {};
     /* defaults --> */
@@ -132,7 +132,7 @@ var SharedState = function SharedState(url, options) {
         }
     };
 
-    /* 
+    /*
     Internal method for invoking callback handlers
     Handler is only supplied if on one specific callback is to used.
     This is helpful for supporting "immediate events", i.e. events given directly
@@ -450,15 +450,15 @@ var SharedState = function SharedState(url, options) {
 
     /*
     READYSTATE
-    encapsulate protected property _readystate by wrapping 
+    encapsulate protected property _readystate by wrapping
     getter and setter logic around it.
     Closure ensures that all state transfers must go through set function.
-    Possibility to implement verification on all attempted state transferes 
+    Possibility to implement verification on all attempted state transferes
     Event
     */
     var readystate = function () {
         var _readystate = STATE["CONNECTING"];
-        // accessors  
+        // accessors
         return {
             set: function set(new_state) {
                 // check new state value
@@ -493,40 +493,40 @@ var SharedState = function SharedState(url, options) {
      */
     /*
     register callback
-    The complexity of this method arise from the fact that we are to give 
-    an "immediate callback" to the given handler. 
-    In addition, I do not want to do so directly within the on() method. 
-    As a programmer I would like to ensure that initialisation of an object 
-    is completed BEFORE the object needs to process any callbacks from the 
-    external world. This can be problematic if the object depends on events 
+    The complexity of this method arise from the fact that we are to give
+    an "immediate callback" to the given handler.
+    In addition, I do not want to do so directly within the on() method.
+    As a programmer I would like to ensure that initialisation of an object
+    is completed BEFORE the object needs to process any callbacks from the
+    external world. This can be problematic if the object depends on events
     from multiple other objects. For example, the internal initialisation code
     needs to register handlers on external objects a and b.
     a.on("event", internal_handler_a);
     b.on("event", internal_handler_b);
-    However, if object a gives an callback immediately within on, this callback 
-    will be processed BEFORE we have completed initialisation, i.e., any code 
+    However, if object a gives an callback immediately within on, this callback
+    will be processed BEFORE we have completed initialisation, i.e., any code
     subsequent to a.on).
-    It is quite possible to make this be correct still, but I find nested handler 
+    It is quite possible to make this be correct still, but I find nested handler
     invocation complicated to think about, and I prefer to avoid the problem.
-    Therefore I like instead to make life easier by delaying "immediate callbacks" 
-    using 
-    setTimeout(_do_callbacks("event", e, handler), 0); 
+    Therefore I like instead to make life easier by delaying "immediate callbacks"
+    using
+    setTimeout(_do_callbacks("event", e, handler), 0);
     This however introduces two new problems. First, if you do :
     o.on("event", handler);
     o.off("event", handler);
-    you will get the "immediate callback" after off(), which is not what you 
-    expect. This is avoided by checking that the given handler is indeed still 
-    registered when executing _do_callbacks(). Alternatively one could cancel the 
+    you will get the "immediate callback" after off(), which is not what you
+    expect. This is avoided by checking that the given handler is indeed still
+    registered when executing _do_callbacks(). Alternatively one could cancel the
     timeout within off().
-    Second, with the handler included in _callbacks[what] it is possible to receive 
+    Second, with the handler included in _callbacks[what] it is possible to receive
     event callbacks before the delayed "immediate callback" is actually invoked.
     This breaks the expectation the the "immediate callback" is the first callback.
     This problem is avoided by flagging the callback handler with ".immediate_pending"
     and dropping notifications that arrive before the "immediate_callback has executed".
     Note however that the effect of this dropped notification is not lost. The effects
-    are taken into account when we calculate the "initial state" to be reported by the 
-    "immediate callback". Crucially, we do this not in the on() method, but when the 
-    delayed "immediate callback" actually is processed. 
+    are taken into account when we calculate the "initial state" to be reported by the
+    "immediate callback". Crucially, we do this not in the on() method, but when the
+    delayed "immediate callback" actually is processed.
     */
 
     var on = function on(what, handler, ctx) {
