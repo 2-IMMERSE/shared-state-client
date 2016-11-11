@@ -1,12 +1,13 @@
 BIN = $(realpath ./node_modules/.bin)
 DIST_DIR = dist
 SRC = $(notdir $(wildcard js/*.js))
+SRC_FILES = $(addprefix js/,$(SRC))
 TARGETS = $(addprefix $(DIST_DIR)/,$(SRC))
 BUNDLE_ROOT = js/npm.js
 
 cleanbundle = rm -f bundle.js bundle.js.map
 
-.PHONY: all clean
+.PHONY: all clean lint
 
 all: $(TARGETS)
 all: $(DIST_DIR)/shared-state-client.min.js $(DIST_DIR)/shared-state-client.min.js.map
@@ -40,3 +41,6 @@ dummy.intermediate: | $(DIST_DIR)
 clean:
 	rm -fr $(DIST_DIR)
 	$(cleanbundle)
+
+lint:
+	"$(BIN)"/jshint $(SRC_FILES)

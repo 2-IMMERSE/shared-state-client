@@ -14,6 +14,7 @@
     "babelify": "^7.3.0",
     "browserify": "^13.1.1",
     "exorcist": "^0.4.0",
+    "jshint": "^2.9.4",
     "socket.io-client": "1.4.8",
     "uglifyjs": "^2.4.10"
   }
