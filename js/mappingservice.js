@@ -10,6 +10,7 @@ let io = require("socket.io-client");
      * @param {boolean} [options.logToConsole] if things should get logged to console, Default = false
      * @param {function} [options.errorFunction] function to call for error messages, overrides logToConsole
      * @param {number} [options.maxTimeout] timeout value in ms, Default = 2000
+     * @param {boolean} [options.multiplex] enable socket.io multiplexing, Default = socket.io default
      * @returns {Object} MappingService
      * @author Andreas Bosl <bosl@irt.de>
      * @copyright 2014 Institut für Rundfunktechnik GmbH, All rights reserved.
@@ -46,9 +47,6 @@ let io = require("socket.io-client");
         if (!options.maxTimeout){
             options.maxTimeout = 2000;
         }
-
-        options.forceNew = true;
-        options.multiplex = false;
 
         var _error = function() {};
 

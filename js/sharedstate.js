@@ -14,6 +14,7 @@ let io = require("socket.io-client");
      * @param {function} [options.errorFunction] function to call for error messages, overrides logToConsole
      * @param {boolean} [options.autoPresence] set presence to "online" on connect, Default = true
      * @param {boolean} [options.autoClean] auto clean (???), Default = true
+     * @param {boolean} [options.multiplex] enable socket.io multiplexing, Default = socket.io default
      * @returns {Object} SharedState
      * @author Andreas Bosl <bosl@irt.de>
      * @copyright 2014 Institut für Rundfunktechnik GmbH, All rights reserved.
@@ -79,8 +80,6 @@ let io = require("socket.io-client");
         if (options.autoClean !== true) {
             options.autoClean = false;
         }
-        options.forceNew = true;
-        options.multiplex = false;
 
         url = url || {};
         /* defaults --> */
