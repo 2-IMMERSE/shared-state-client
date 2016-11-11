@@ -66,11 +66,7 @@ var MappingService = function MappingService(url, options) {
     var connectURL = url || {};
     /* defaults --> */
 
-    var waitingUserPromises = [];
-    var waitingGroupPromises = [];
-
     var onConnect = void 0,
-        onMapping = void 0,
         readystate = void 0;
 
     /* <!-- internal functions */
@@ -79,7 +75,6 @@ var MappingService = function MappingService(url, options) {
         _connection = io(connectURL, options);
         _connection.on('connect', onConnect);
         readystate.set('connecting');
-        _connection.on('mapping', onMapping);
         if (_connection.connected === true) {
             onConnect();
         }
@@ -89,7 +84,7 @@ var MappingService = function MappingService(url, options) {
         readystate.set('open');
     };
 
-    onMapping = function onMapping(response) {
+    var parseMapping = function parseMapping(response) {
         var host = url;
 
         if ((typeof url === "undefined" ? "undefined" : _typeof(url)) === 'object' || !url) {
@@ -106,19 +101,12 @@ var MappingService = function MappingService(url, options) {
             if (response.userApp) {
                 result.userApp = host + response.userApp;
             }
-
-            if (waitingUserPromises.length > 0) {
-                var promise = waitingUserPromises.pop();
-                promise(result);
-            }
+            return result;
         } else {
             var _result = {
                 group: host + response.group
             };
-            if (waitingGroupPromises.length > 0) {
-                var _promise = waitingGroupPromises.pop();
-                _promise(_result);
-            }
+            return _result;
         }
     };
 
@@ -190,6 +178,19 @@ var MappingService = function MappingService(url, options) {
         };
     }();
 
+    var getMappingCommon = function getMappingCommon(request) {
+        return new Promise(function (fulfill, reject) {
+            _connection.emit('getMapping', request, function (response) {
+                fulfill(parseMapping(response));
+            });
+            setTimeout(function () {
+                reject({
+                    error: 'timeout'
+                });
+            }, options.maxTimeout);
+        });
+    };
+
     var getUserMapping = function getUserMapping(appId, scopeList) {
         if (appId && Array.isArray(scopeList)) {
             var request = {
@@ -209,20 +210,10 @@ var MappingService = function MappingService(url, options) {
             if (options.userId) {
                 request.userId = options.userId;
             }
-            _connection.emit('getMapping', request);
+            return getMappingCommon(request);
         } else {
             throw 'appId or scopeList undefined';
         }
-        return new Promise(function (fulfill, reject) {
-            waitingUserPromises.push(function (data) {
-                fulfill(data);
-            });
-            setTimeout(function () {
-                reject({
-                    error: 'timeout'
-                });
-            }, options.maxTimeout);
-        });
     };
 
     var getGroupMapping = function getGroupMapping(groupId) {
@@ -230,20 +221,10 @@ var MappingService = function MappingService(url, options) {
             var request = {
                 groupId: groupId
             };
-            _connection.emit('getMapping', request);
+            return getMappingCommon(request);
         } else {
             throw 'groupId undefined';
         }
-        return new Promise(function (fulfill, reject) {
-            waitingGroupPromises.push(function (data) {
-                fulfill(data);
-            });
-            setTimeout(function () {
-                reject({
-                    error: 'timeout'
-                });
-            }, options.maxTimeout);
-        });
     };
 
     /**
