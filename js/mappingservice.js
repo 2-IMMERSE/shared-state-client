@@ -58,10 +58,7 @@ let io = require("socket.io-client");
         var connectURL = url || {};
         /* defaults --> */
 
-        var waitingUserPromises = [];
-        var waitingGroupPromises = [];
-
-        let onConnect, onMapping, readystate;
+        let onConnect, readystate;
 
         /* <!-- internal functions */
         var _init = function () {
@@ -69,7 +66,6 @@ let io = require("socket.io-client");
             _connection = io(connectURL, options);
             _connection.on('connect', onConnect);
             readystate.set('connecting');
-            _connection.on('mapping', onMapping);
             if (_connection.connected === true) {
                 onConnect();
             }
@@ -80,7 +76,7 @@ let io = require("socket.io-client");
             readystate.set('open');
         };
 
-        onMapping = function (response) {
+        let parseMapping = function (response) {
             let host = url;
 
             if (typeof url === 'object' || !url) {
@@ -97,20 +93,12 @@ let io = require("socket.io-client");
                 if (response.userApp) {
                     result.userApp = host + response.userApp;
                 }
-
-
-                if (waitingUserPromises.length > 0) {
-                    let promise = waitingUserPromises.pop();
-                    promise(result);
-                }
+                return result;
             } else {
                 let result = {
                     group: host + response.group
                 };
-                if (waitingGroupPromises.length > 0) {
-                    let promise = waitingGroupPromises.pop();
-                    promise(result);
-                }
+                return result;
             }
         };
 
@@ -187,6 +175,19 @@ let io = require("socket.io-client");
             };
         }();
 
+        var getMappingCommon = function (request) {
+            return new Promise(function (fulfill, reject) {
+                _connection.emit('getMapping', request, function (response) {
+                    fulfill(parseMapping(response));
+                });
+                setTimeout(function () {
+                    reject({
+                        error: 'timeout'
+                    });
+                }, options.maxTimeout);
+            });
+        };
+
         var getUserMapping = function (appId, scopeList) {
             if (appId && Array.isArray(scopeList)) {
                 var request = {
@@ -206,20 +207,10 @@ let io = require("socket.io-client");
                 if (options.userId) {
                     request.userId = options.userId;
                 }
-                _connection.emit('getMapping', request);
+                return getMappingCommon(request);
             } else {
                 throw 'appId or scopeList undefined';
             }
-            return new Promise(function (fulfill, reject) {
-                waitingUserPromises.push(function (data) {
-                    fulfill(data);
-                });
-                setTimeout(function () {
-                    reject({
-                        error: 'timeout'
-                    });
-                }, options.maxTimeout);
-            });
         };
 
         var getGroupMapping = function (groupId) {
@@ -227,20 +218,10 @@ let io = require("socket.io-client");
                 var request = {
                     groupId: groupId
                 };
-                _connection.emit('getMapping', request);
+                return getMappingCommon(request);
             } else {
                 throw 'groupId undefined';
             }
-            return new Promise(function (fulfill, reject) {
-                waitingGroupPromises.push(function (data) {
-                    fulfill(data);
-                });
-                setTimeout(function () {
-                    reject({
-                        error: 'timeout'
-                    });
-                }, options.maxTimeout);
-            });
         };
 
         /**
