@@ -8,6 +8,22 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 
 var io = require("socket.io-client");
 
+/**
+ * @class MappingService
+ * @classdesc JavaScript Library for the MediaScape MappingService
+ * @param {string} url URL for the WS connection. if(!url) it tries to connect to the server wich hosts the socket.io.js
+ * @param {Object} options
+ * @param {string} [options.userid] User ID
+ * @param {boolean} [options.reconnection] if the Client should try to reconnect,Default = true
+ * @param {boolean} [options.logToConsole] if things should get logged to console, Default = false
+ * @param {function} [options.errorFunction] function to call for error messages, overrides logToConsole
+ * @param {number} [options.maxTimeout] timeout value in ms, Default = 2000
+ * @param {boolean} [options.multiplex] enable socket.io multiplexing, Default = socket.io default
+ * @returns {Object} MappingService
+ * @author Andreas Bosl <bosl@irt.de>
+ * @copyright 2014 Institut für Rundfunktechnik GmbH, All rights reserved.
+ *
+ */
 var MappingService = function MappingService(url, options) {
 
     var _connection = null;
@@ -22,7 +38,7 @@ var MappingService = function MappingService(url, options) {
     });
 
     if ((typeof url === "undefined" ? "undefined" : _typeof(url)) === 'object') {
-        var options = url;
+        options = url;
         url = {};
         console.log('options', options);
     }
@@ -33,21 +49,29 @@ var MappingService = function MappingService(url, options) {
     };
     /* <!-- defaults */
     if (!options) {
-        var options = {};
+        options = {};
     }
 
     if (!options.maxTimeout) {
         options.maxTimeout = 2000;
     }
 
-    options.forceNew = true;
-    options.multiplex = false;
+    var _error = function _error() {};
+
+    if (options.logToConsole === true) {
+        _error = console.error.bind(console);
+    }
+    if (options.errorFunction) _error = options.errorFunction;
 
     var connectURL = url || {};
     /* defaults --> */
 
     var waitingUserPromises = [];
     var waitingGroupPromises = [];
+
+    var onConnect = void 0,
+        onMapping = void 0,
+        readystate = void 0;
 
     /* <!-- internal functions */
     var _init = function _init() {
@@ -61,15 +85,15 @@ var MappingService = function MappingService(url, options) {
         }
     };
 
-    var onConnect = function onConnect() {
+    onConnect = function onConnect() {
         readystate.set('open');
     };
 
-    var onMapping = function onMapping(response) {
+    onMapping = function onMapping(response) {
         var host = url;
 
         if ((typeof url === "undefined" ? "undefined" : _typeof(url)) === 'object' || !url) {
-            var host = window.location.protocol + '//' + window.location.host + '/';
+            host = window.location.protocol + '//' + window.location.host + '/';
         }
         if (!response.group) {
             var result = {};
@@ -84,16 +108,16 @@ var MappingService = function MappingService(url, options) {
             }
 
             if (waitingUserPromises.length > 0) {
-                promise = waitingUserPromises.pop();
+                var promise = waitingUserPromises.pop();
                 promise(result);
             }
         } else {
-            var result = {
+            var _result = {
                 group: host + response.group
             };
             if (waitingGroupPromises.length > 0) {
-                promise = waitingGroupPromises.pop();
-                promise(result);
+                var _promise = waitingGroupPromises.pop();
+                _promise(_result);
             }
         }
     };
@@ -110,7 +134,7 @@ var MappingService = function MappingService(url, options) {
     var _do_callbacks = function _do_callbacks(what, e, handler) {
         if (!_callbacks.hasOwnProperty(what)) throw "Unsupported event " + what;
         var h;
-        for (i = 0; i < _callbacks[what].length; i++) {
+        for (var i = 0; i < _callbacks[what].length; i++) {
             h = _callbacks[what][i];
             if (handler === undefined) {
                 // all handlers to be invoked, except those with pending immeditate
@@ -125,8 +149,8 @@ var MappingService = function MappingService(url, options) {
             }
             try {
                 h.call(self, e);
-            } catch (e) {
-                _error("Error in " + what + ": " + h + ": " + e);
+            } catch (ex) {
+                _error("Error in " + what + ": " + h + ": " + ex);
             }
         }
     };
@@ -139,14 +163,14 @@ var MappingService = function MappingService(url, options) {
     Possibility to implement verification on all attempted state transferes
     Event
     */
-    var readystate = function () {
+    readystate = function () {
         var _readystate = STATE["CONNECTING"];
         // accessors
         return {
             set: function set(new_state) {
                 // check new state value
-                found = false;
-                for (key in STATE) {
+                var found = false;
+                for (var key in STATE) {
                     if (!STATE.hasOwnProperty(key)) continue;
                     if (STATE[key] === new_state) found = true;
                 }

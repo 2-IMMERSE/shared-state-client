@@ -8,17 +8,18 @@ var io = require("socket.io-client");
 /**
  * @class SharedState
  * @classdesc JavaScript Library for the MediaScape SharedState
- * @param {string} url URL for the WS connection. if(!url) it tryes to connect to the server wich hosts the socket.io.js
- * @param {string} token the connection token
+ * @param {string} url URL for the WS connection. if(!url) it tries to connect to the server wich hosts the socket.io.js
  * @param {Object} options
  * @param {boolean} [options.reconnection] if the Client should try to reconnect,Default = true
- * @param {boolean} [options.agentid] the AgentID to use, Default = random()
+ * @param {string} [options.agentid] the AgentID to use, Default = random()
  * @param {boolean} [options.getOnInit] get all Keys from the Server on init(), Default = true
  * @param {boolean} [options.logStateInterval] logs the sharedState every 5sec to the console, Default = false
  * @param {boolean} [options.logToConsole] if things should get logged to console, Default = false
- * @param {boolean} [options.logFunction] function to call for log messages, overrides logToConsole
- * @param {boolean} [options.errorFunction] function to call for error messages, overrides logToConsole
+ * @param {function} [options.logFunction] function to call for log messages, overrides logToConsole
+ * @param {function} [options.errorFunction] function to call for error messages, overrides logToConsole
  * @param {boolean} [options.autoPresence] set presence to "online" on connect, Default = true
+ * @param {boolean} [options.autoClean] auto clean (???), Default = true
+ * @param {boolean} [options.multiplex] enable socket.io multiplexing, Default = socket.io default
  * @returns {Object} SharedState
  * @author Andreas Bosl <bosl@irt.de>
  * @copyright 2014 Institut für Rundfunktechnik GmbH, All rights reserved.
@@ -59,6 +60,17 @@ var SharedState = function SharedState(url, options) {
     if (options.reconnection !== false) {
         options.reconnection = true;
     }
+
+    var _log = function _log() {};
+    var _error = function _error() {};
+
+    if (options.logToConsole === true) {
+        _log = console.info.bind(console);
+        _error = console.error.bind(console);
+    }
+    if (options.logFunction) _log = options.logFunction;
+    if (options.errorFunction) _error = options.errorFunction;
+
     if (!options.agentid) {
         _log('SHAREDSTATE - agentID undefined, generating one for this session');
         options.agentid = (Math.random() * 999999999).toFixed(0);
@@ -73,18 +85,6 @@ var SharedState = function SharedState(url, options) {
     if (options.autoClean !== true) {
         options.autoClean = false;
     }
-    options.forceNew = true;
-    options.multiplex = false;
-
-    var _log = function _log() {};
-    var _error = function _error() {};
-
-    if (options.logToConsole === true) {
-        _log = console.info.bind(console);
-        _error = console.error.bind(console);
-    }
-    if (options.logFunction) _log = options.logFunction;
-    if (options.errorFunction) _error = options.errorFunction;
 
     url = url || {};
     /* defaults --> */
@@ -94,6 +94,18 @@ var SharedState = function SharedState(url, options) {
             _log('SharedSate(' + url + '):', _sharedStates);
         }, 5000);
     }
+
+    var onConnect = void 0,
+        onDisconnect = void 0,
+        onJoined = void 0,
+        onStatus = void 0,
+        onChangeState = void 0,
+        onInitState = void 0,
+        onError = void 0,
+        _autoClean = void 0,
+        _sendDatagram = void 0,
+        readystate = void 0,
+        setPresence = void 0;
 
     /* <!-- internal functions */
     var _init = function _init() {
@@ -115,11 +127,11 @@ var SharedState = function SharedState(url, options) {
         }
     };
 
-    var onError = function onError(data) {
+    onError = function onError(data) {
         _error('SharedState-error', data);
     };
 
-    var onConnect = function onConnect() {
+    onConnect = function onConnect() {
         if (_connection.connected === true) {
             readystate.set('connecting');
             var datagram = {
@@ -144,7 +156,7 @@ var SharedState = function SharedState(url, options) {
     var _do_callbacks = function _do_callbacks(what, e, handler) {
         if (!_callbacks.hasOwnProperty(what)) throw "Unsupported event " + what;
         var h;
-        for (i = 0; i < _callbacks[what].length; i++) {
+        for (var i = 0; i < _callbacks[what].length; i++) {
             h = _callbacks[what][i];
             if (handler === undefined) {
                 // all handlers to be invoked, except those with pending immeditate
@@ -163,15 +175,15 @@ var SharedState = function SharedState(url, options) {
                 } else {
                     h.call(self, e);
                 }
-            } catch (e) {
-                _error("Error in " + what + ": " + h + ": " + e);
+            } catch (ex) {
+                _error("Error in " + what + ": " + h + ": " + ex);
             }
         }
     };
     /* internal functions --> */
 
     /* <!-- incoming socket functions */
-    var onStatus = function onStatus(datagram) {
+    onStatus = function onStatus(datagram) {
         _log('SHAREDSTATE - got "status"', datagram);
         for (var i = 0; i < datagram.presence.length; i++) {
             if (datagram.presence[i].key && JSON.stringify(_presence[datagram.presence[i].key]) != JSON.stringify(datagram.presence[i].value || !_presence[datagram.presence[i].key])) {
@@ -187,12 +199,12 @@ var SharedState = function SharedState(url, options) {
         }
     };
 
-    var onDisconnect = function onDisconnect() {
+    onDisconnect = function onDisconnect() {
         readystate.set('connecting');
         _log('SHAREDSTATE - got "disconnected"');
     };
 
-    var onChangeState = function onChangeState(datagram) {
+    onChangeState = function onChangeState(datagram) {
         _log('SHAREDSTATE - got "changeState"', datagram);
 
         datagram = datagram || {};
@@ -215,23 +227,23 @@ var SharedState = function SharedState(url, options) {
                 }
             } else if (datagram[i].type == 'remove') {
                 if (datagram[i].key && _sharedStates[datagram[i].key]) {
-                    var state = {
+                    var _state = {
                         key: datagram[i].key,
                         value: _sharedStates[datagram[i].key],
                         type: 'delete'
                     };
                     delete _sharedStates[datagram[i].key];
-                    _do_callbacks('remove', state);
+                    _do_callbacks('remove', _state);
                 }
             }
         }
     };
 
-    var onJoined = function onJoined(datagram) {
+    onJoined = function onJoined(datagram) {
         _log('SHAREDSTATE - got "joined"', datagram);
         if (datagram.agentID == options.agentid) {
             if (options.getOnInit === true) {
-                var datagram = [];
+                datagram = [];
                 _sendDatagram('getInitState', datagram);
             } else {
                 readystate.set('open');
@@ -246,7 +258,7 @@ var SharedState = function SharedState(url, options) {
                 // Autoclean - check for meta keys without online nodes
                 for (var key in _sharedStates) {
                     if (_sharedStates.hasOwnProperty(key)) {
-                        if (key.indexOf("__meta__") == 0) {
+                        if (key.indexOf("__meta__") === 0) {
                             var agentid = key.substr(8);
                             if (!_presence[agentid]) {
                                 _autoClean(agentid);
@@ -258,7 +270,7 @@ var SharedState = function SharedState(url, options) {
         }
     };
 
-    var onInitState = function onInitState(datagram) {
+    onInitState = function onInitState(datagram) {
         _log('INITSTATE', datagram);
 
         for (var i = 0, len = datagram.length; i < len; i++) {
@@ -280,7 +292,7 @@ var SharedState = function SharedState(url, options) {
         }
     };
 
-    var _autoClean = function _autoClean(agentid) {
+    _autoClean = function _autoClean(agentid) {
         if (!options.autoClean) {
             return;
         }
@@ -288,7 +300,7 @@ var SharedState = function SharedState(url, options) {
         // Go through the dataset and remove anything left from this node
         for (var key in _sharedStates) {
             if (_sharedStates.hasOwnProperty(key)) {
-                if (key.indexOf("__") == 0 && key.indexOf("__" + agentid) > -1) {
+                if (key.indexOf("__") === 0 && key.indexOf("__" + agentid) > -1) {
                     self.removeItem(key);
                 }
             }
@@ -298,7 +310,7 @@ var SharedState = function SharedState(url, options) {
     /* incoming socket functions --> */
 
     /* <!-- outgoing socket functions */
-    var _sendDatagram = function _sendDatagram(type, datagram) {
+    _sendDatagram = function _sendDatagram(type, datagram) {
         _log('SHAREDSTATE - sending', datagram);
         _connection.emit(type, datagram);
     };
@@ -456,14 +468,14 @@ var SharedState = function SharedState(url, options) {
     Possibility to implement verification on all attempted state transferes
     Event
     */
-    var readystate = function () {
+    readystate = function () {
         var _readystate = STATE["CONNECTING"];
         // accessors
         return {
             set: function set(new_state) {
                 // check new state value
-                found = false;
-                for (key in STATE) {
+                var found = false;
+                for (var key in STATE) {
                     if (!STATE.hasOwnProperty(key)) continue;
                     if (STATE[key] === new_state) found = true;
                 }
@@ -545,34 +557,38 @@ var SharedState = function SharedState(url, options) {
             setTimeout(function () {
                 switch (what) {
                     case 'change':
-                        var keys = Object.keys(_sharedStates);
-                        if (keys.length === 0) {
-                            handler['_immediate_pending_' + what] = false;
-                        } else {
-                            for (var i = 0, len = keys.length; i < len; i++) {
-                                var state = {
-                                    key: keys[i],
-                                    value: _sharedStates[keys[i]],
-                                    type: 'update'
-                                };
-                                _do_callbacks('change', state, handler);
+                        {
+                            var _keys = Object.keys(_sharedStates);
+                            if (_keys.length === 0) {
+                                handler['_immediate_pending_' + what] = false;
+                            } else {
+                                for (var i = 0, len = _keys.length; i < len; i++) {
+                                    var state = {
+                                        key: _keys[i],
+                                        value: _sharedStates[_keys[i]],
+                                        type: 'update'
+                                    };
+                                    _do_callbacks('change', state, handler);
+                                }
                             }
+                            break;
                         }
-                        break;
                     case 'presence':
-                        var keys = Object.keys(_presence);
-                        if (keys.length === 0) {
-                            handler['_immediate_pending_' + what] = false;
-                        } else {
-                            for (var i = 0, len = keys.length; i < len; i++) {
-                                var presence = {
-                                    key: keys[i],
-                                    value: _presence[keys[i]]
-                                };
-                                _do_callbacks('presence', presence, handler);
+                        {
+                            var _keys2 = Object.keys(_presence);
+                            if (_keys2.length === 0) {
+                                handler['_immediate_pending_' + what] = false;
+                            } else {
+                                for (var _i = 0, _len = _keys2.length; _i < _len; _i++) {
+                                    var presence = {
+                                        key: _keys2[_i],
+                                        value: _presence[_keys2[_i]]
+                                    };
+                                    _do_callbacks('presence', presence, handler);
+                                }
                             }
+                            break;
                         }
-                        break;
                     case 'remove':
                         handler['_immediate_pending_' + what] = false;
                         break;
@@ -611,7 +627,7 @@ var SharedState = function SharedState(url, options) {
      * @returns {Object} SharedState
      * @memberof SharedState
      */
-    var setPresence = function setPresence(state) {
+    setPresence = function setPresence(state) {
         if (readystate.get() == STATE.OPEN) {
             if (state) {
                 var datagram = {
@@ -626,6 +642,27 @@ var SharedState = function SharedState(url, options) {
             throw 'SHAREDSTATE - send not possible - connection status:' + readystate.get();
         }
         return self;
+    };
+
+    /**
+     * Destroy the instance
+     * After this method is called, the instance may no longer be used, other than further calls
+     * to destroy().
+     * The result of attempting to use the instance after destruction is undefined.
+     * After destroy() has been called, further calls to destroy() have no effect.
+     *
+     * @method destroy
+     * @memberof SharedState
+     */
+    var destroy = function destroy() {
+        if (_connection) {
+            _connection.close();
+            _connection = null;
+            readystate.set('destroyed');
+            for (var prop in _callbacks) {
+                _callbacks[prop].length = 0;
+            }
+        }
     };
     /* API functions --> */
 
@@ -651,6 +688,8 @@ var SharedState = function SharedState(url, options) {
     self.off = off;
 
     self.setPresence = setPresence;
+
+    self.destroy = destroy;
     /* public --> */
 
     _init();
