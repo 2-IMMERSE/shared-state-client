@@ -1,4 +1,4 @@
-let MappingService = require("./mappingservice.js");
-let SharedState = require("./sharedstate.js");
+import MappingService from "./mappingservice.js";
+import SharedState from "./sharedstate.js";
 
-export default { MappingService, SharedState };
+export { MappingService, SharedState };
