@@ -674,6 +674,27 @@ let io = require("socket.io-client");
             }
             return self;
         };
+
+        /**
+         * Destroy the instance
+         * After this method is called, the instance may no longer be used, other than further calls
+         * to destroy().
+         * The result of attempting to use the instance after destruction is undefined.
+         * After destroy() has been called, further calls to destroy() have no effect.
+         *
+         * @method destroy
+         * @memberof SharedState
+         */
+        var destroy = function() {
+            if (_connection) {
+                _connection.close();
+                _connection = null;
+                readystate.set('destroyed');
+                for (let prop in _callbacks) {
+                    _callbacks[prop].length = 0;
+                }
+            }
+        };
         /* API functions --> */
 
 
@@ -699,6 +720,8 @@ let io = require("socket.io-client");
         self.off = off;
 
         self.setPresence = setPresence;
+
+        self.destroy = destroy;
         /* public --> */
 
         _init();
