@@ -3,17 +3,17 @@ let io = require("socket.io-client");
     /**
      * @class SharedState
      * @classdesc JavaScript Library for the MediaScape SharedState
-     * @param {string} url URL for the WS connection. if(!url) it tryes to connect to the server wich hosts the socket.io.js
-     * @param {string} token the connection token
+     * @param {string} url URL for the WS connection. if(!url) it tries to connect to the server wich hosts the socket.io.js
      * @param {Object} options
      * @param {boolean} [options.reconnection] if the Client should try to reconnect,Default = true
-     * @param {boolean} [options.agentid] the AgentID to use, Default = random()
+     * @param {string} [options.agentid] the AgentID to use, Default = random()
      * @param {boolean} [options.getOnInit] get all Keys from the Server on init(), Default = true
      * @param {boolean} [options.logStateInterval] logs the sharedState every 5sec to the console, Default = false
      * @param {boolean} [options.logToConsole] if things should get logged to console, Default = false
-     * @param {boolean} [options.logFunction] function to call for log messages, overrides logToConsole
-     * @param {boolean} [options.errorFunction] function to call for error messages, overrides logToConsole
+     * @param {function} [options.logFunction] function to call for log messages, overrides logToConsole
+     * @param {function} [options.errorFunction] function to call for error messages, overrides logToConsole
      * @param {boolean} [options.autoPresence] set presence to "online" on connect, Default = true
+     * @param {boolean} [options.autoClean] auto clean (???), Default = true
      * @returns {Object} SharedState
      * @author Andreas Bosl <bosl@irt.de>
      * @copyright 2014 Institut für Rundfunktechnik GmbH, All rights reserved.

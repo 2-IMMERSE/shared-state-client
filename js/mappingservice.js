@@ -1,5 +1,20 @@
 let io = require("socket.io-client");
 
+    /**
+     * @class MappingService
+     * @classdesc JavaScript Library for the MediaScape MappingService
+     * @param {string} url URL for the WS connection. if(!url) it tries to connect to the server wich hosts the socket.io.js
+     * @param {Object} options
+     * @param {string} [options.userid] User ID
+     * @param {boolean} [options.reconnection] if the Client should try to reconnect,Default = true
+     * @param {boolean} [options.logToConsole] if things should get logged to console, Default = false
+     * @param {function} [options.errorFunction] function to call for error messages, overrides logToConsole
+     * @param {number} [options.maxTimeout] timeout value in ms, Default = 2000
+     * @returns {Object} MappingService
+     * @author Andreas Bosl <bosl@irt.de>
+     * @copyright 2014 Institut für Rundfunktechnik GmbH, All rights reserved.
+     *
+     */
     var MappingService = function (url, options) {
 
         var _connection = null;
