@@ -1,0 +1,14 @@
+{
+	"undef": true,
+	"unused": "vars",
+	"freeze": true,
+	"latedef": "nofunc",
+	"noarg": true,
+	"eqnull": true,
+	"loopfunc": true,
+	"esversion": 6,
+	"browser": true,
+	"devel": true,
+	"browserify": true,
+	"sub": true
+}

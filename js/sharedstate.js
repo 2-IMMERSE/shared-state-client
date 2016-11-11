@@ -54,6 +54,17 @@ let io = require("socket.io-client");
         if (options.reconnection !== false) {
             options.reconnection = true;
         }
+
+        var _log = function() {};
+        var _error = function() {};
+
+        if (options.logToConsole === true) {
+            _log = console.info.bind(console);
+            _error = console.error.bind(console);
+        }
+        if (options.logFunction) _log = options.logFunction;
+        if (options.errorFunction) _error = options.errorFunction;
+
         if (!options.agentid) {
             _log('SHAREDSTATE - agentID undefined, generating one for this session');
             options.agentid = (Math.random() * 999999999).toFixed(0);
@@ -71,16 +82,6 @@ let io = require("socket.io-client");
         options.forceNew = true;
         options.multiplex = false;
 
-        var _log = function() {};
-        var _error = function() {};
-
-        if (options.logToConsole === true) {
-            _log = console.info.bind(console);
-            _error = console.error.bind(console);
-        }
-        if (options.logFunction) _log = options.logFunction;
-        if (options.errorFunction) _error = options.errorFunction;
-
         url = url || {};
         /* defaults --> */
 
@@ -92,6 +93,7 @@ let io = require("socket.io-client");
             }, 5000);
         }
 
+        let onConnect, onDisconnect, onJoined, onStatus, onChangeState, onInitState, onError, _autoClean, _sendDatagram, readystate, setPresence;
 
         /* <!-- internal functions */
         var _init = function () {
@@ -116,11 +118,11 @@ let io = require("socket.io-client");
 
         };
 
-        var onError = function (data) {
+        onError = function (data) {
             _error('SharedState-error', data);
         };
 
-        var onConnect = function () {
+        onConnect = function () {
             if (_connection.connected === true) {
                 readystate.set('connecting');
                 var datagram = {
@@ -147,7 +149,7 @@ let io = require("socket.io-client");
         var _do_callbacks = function (what, e, handler) {
             if (!_callbacks.hasOwnProperty(what)) throw "Unsupported event " + what;
             var h;
-            for (i = 0; i < _callbacks[what].length; i++) {
+            for (let i = 0; i < _callbacks[what].length; i++) {
                 h = _callbacks[what][i];
                 if (handler === undefined) {
                     // all handlers to be invoked, except those with pending immeditate
@@ -167,8 +169,8 @@ let io = require("socket.io-client");
                     } else {
                         h.call(self, e);
                     }
-                } catch (e) {
-                    _error("Error in " + what + ": " + h + ": " + e);
+                } catch (ex) {
+                    _error("Error in " + what + ": " + h + ": " + ex);
                 }
             }
         };
@@ -176,7 +178,7 @@ let io = require("socket.io-client");
 
 
         /* <!-- incoming socket functions */
-        var onStatus = function (datagram) {
+        onStatus = function (datagram) {
             _log('SHAREDSTATE - got "status"', datagram);
             for (var i = 0; i < datagram.presence.length; i++) {
                 if (datagram.presence[i].key && (JSON.stringify(_presence[datagram.presence[i].key]) != JSON.stringify(datagram.presence[i].value || !_presence[datagram.presence[i].key]))) {
@@ -193,13 +195,13 @@ let io = require("socket.io-client");
             }
         };
 
-        var onDisconnect = function () {
+        onDisconnect = function () {
             readystate.set('connecting');
             _log('SHAREDSTATE - got "disconnected"');
         };
 
 
-        var onChangeState = function (datagram) {
+        onChangeState = function (datagram) {
             _log('SHAREDSTATE - got "changeState"', datagram);
 
             datagram = datagram || {};
@@ -208,7 +210,7 @@ let io = require("socket.io-client");
             for (var i = 0; i < datagram.length; i++) {
                 if (datagram[i].type == 'set') {
                     if (datagram[i].key && JSON.stringify(_sharedStates[datagram[i].key]) != JSON.stringify(datagram[i].value)) {
-                        var state = {
+                        let state = {
                             key: datagram[i].key,
                             value: datagram[i].value,
                             type: 'add'
@@ -224,7 +226,7 @@ let io = require("socket.io-client");
                     }
                 } else if (datagram[i].type == 'remove') {
                     if (datagram[i].key && _sharedStates[datagram[i].key]) {
-                        var state = {
+                        let state = {
                             key: datagram[i].key,
                             value: _sharedStates[datagram[i].key],
                             type: 'delete'
@@ -238,11 +240,11 @@ let io = require("socket.io-client");
             }
         };
 
-        var onJoined = function (datagram) {
+        onJoined = function (datagram) {
             _log('SHAREDSTATE - got "joined"', datagram);
             if (datagram.agentID == options.agentid) {
                 if (options.getOnInit === true) {
-                    var datagram = [];
+                    datagram = [];
                     _sendDatagram('getInitState', datagram);
                 } else {
                     readystate.set('open');
@@ -259,7 +261,7 @@ let io = require("socket.io-client");
                     // Autoclean - check for meta keys without online nodes
                     for (var key in _sharedStates) {
                         if (_sharedStates.hasOwnProperty(key)) {
-                            if (key.indexOf("__meta__") == 0) {
+                            if (key.indexOf("__meta__") === 0) {
                                 var agentid = key.substr(8);
                                 if (!_presence[agentid]) {
                                     _autoClean(agentid);
@@ -274,7 +276,7 @@ let io = require("socket.io-client");
 
 
 
-        var onInitState = function (datagram) {
+        onInitState = function (datagram) {
             _log('INITSTATE', datagram);
 
             for (var i = 0, len = datagram.length; i < len; i++) {
@@ -295,23 +297,23 @@ let io = require("socket.io-client");
                 setPresence("online");
             }
 
-        }
+        };
 
 
-        var _autoClean = function (agentid) {
+        _autoClean = function (agentid) {
             if (!options.autoClean) {
                 return;
             }
-            _log("*** Cleaning agent ", agentid)
+            _log("*** Cleaning agent ", agentid);
                 // Go through the dataset and remove anything left from this node
             for (var key in _sharedStates) {
                 if (_sharedStates.hasOwnProperty(key)) {
-                    if (key.indexOf("__") == 0 && key.indexOf("__" + agentid) > -1) {
+                    if (key.indexOf("__") === 0 && key.indexOf("__" + agentid) > -1) {
                         self.removeItem(key);
                     }
                 }
             }
-        }
+        };
 
 
         /* incoming socket functions --> */
@@ -319,7 +321,7 @@ let io = require("socket.io-client");
 
 
         /* <!-- outgoing socket functions */
-        var _sendDatagram = function (type, datagram) {
+        _sendDatagram = function (type, datagram) {
             _log('SHAREDSTATE - sending', datagram);
             _connection.emit(type, datagram);
         };
@@ -487,14 +489,14 @@ let io = require("socket.io-client");
 			Event
 
   		*/
-        var readystate = function () {
+        readystate = function () {
             var _readystate = STATE["CONNECTING"];
             // accessors
             return {
                 set: function (new_state) {
                     // check new state value
-                    found = false;
-                    for (key in STATE) {
+                    let found = false;
+                    for (let key in STATE) {
                         if (!STATE.hasOwnProperty(key)) continue;
                         if (STATE[key] === new_state) found = true;
                     }
@@ -586,13 +588,13 @@ let io = require("socket.io-client");
                 // do immediate callback
                 setTimeout(function () {
                     switch (what) {
-                    case 'change':
-                        var keys = Object.keys(_sharedStates);
+                    case 'change': {
+                        let keys = Object.keys(_sharedStates);
                         if (keys.length === 0) {
                             handler['_immediate_pending_' + what] = false;
                         } else {
-                            for (var i = 0, len = keys.length; i < len; i++) {
-                                var state = {
+                            for (let i = 0, len = keys.length; i < len; i++) {
+                                let state = {
                                     key: keys[i],
                                     value: _sharedStates[keys[i]],
                                     type: 'update'
@@ -601,13 +603,14 @@ let io = require("socket.io-client");
                             }
                         }
                         break;
-                    case 'presence':
-                        var keys = Object.keys(_presence);
+                    }
+                    case 'presence': {
+                        let keys = Object.keys(_presence);
                         if (keys.length === 0) {
                             handler['_immediate_pending_' + what] = false;
                         } else {
-                            for (var i = 0, len = keys.length; i < len; i++) {
-                                var presence = {
+                            for (let i = 0, len = keys.length; i < len; i++) {
+                                let presence = {
                                     key: keys[i],
                                     value: _presence[keys[i]]
                                 };
@@ -615,6 +618,7 @@ let io = require("socket.io-client");
                             }
                         }
                         break;
+                    }
                     case 'remove':
                         handler['_immediate_pending_' + what] = false;
                         break;
@@ -654,7 +658,7 @@ let io = require("socket.io-client");
          * @returns {Object} SharedState
          * @memberof SharedState
          */
-        var setPresence = function (state) {
+        setPresence = function (state) {
             if (readystate.get() == STATE.OPEN) {
                 if (state) {
                     var datagram = {
@@ -695,13 +699,12 @@ let io = require("socket.io-client");
         self.on = on;
         self.off = off;
 
-
         self.setPresence = setPresence;
         /* public --> */
 
         _init();
 
         return self;
-    }
+    };
 
 export default SharedState;

@@ -14,7 +14,7 @@ let io = require("socket.io-client");
         });
 
         if (typeof url === 'object') {
-            var options = url;
+            options = url;
             url = {};
             console.log('options', options);
         }
@@ -25,7 +25,7 @@ let io = require("socket.io-client");
         };
         /* <!-- defaults */
         if (!options) {
-            var options = {};
+            options = {};
         }
 
         if (!options.maxTimeout){
@@ -35,11 +35,20 @@ let io = require("socket.io-client");
         options.forceNew = true;
         options.multiplex = false;
 
+        var _error = function() {};
+
+        if (options.logToConsole === true) {
+            _error = console.error.bind(console);
+        }
+        if (options.errorFunction) _error = options.errorFunction;
+
         var connectURL = url || {};
         /* defaults --> */
 
         var waitingUserPromises = [];
         var waitingGroupPromises = [];
+
+        let onConnect, onMapping, readystate;
 
         /* <!-- internal functions */
         var _init = function () {
@@ -47,25 +56,25 @@ let io = require("socket.io-client");
             _connection = io(connectURL, options);
             _connection.on('connect', onConnect);
             readystate.set('connecting');
-            _connection.on('mapping', onMapping)
+            _connection.on('mapping', onMapping);
             if (_connection.connected === true) {
                 onConnect();
             }
 
         };
 
-        var onConnect = function () {
+        onConnect = function () {
             readystate.set('open');
         };
 
-        var onMapping = function (response) {
-            var host = url;
+        onMapping = function (response) {
+            let host = url;
 
             if (typeof url === 'object' || !url) {
-                var host = window.location.protocol + '//' + window.location.host + '/';
+                host = window.location.protocol + '//' + window.location.host + '/';
             }
             if (!response.group) {
-                var result = {}
+                let result = {};
                 if (response.user) {
                     result.user = host + response.user;
                 }
@@ -78,15 +87,15 @@ let io = require("socket.io-client");
 
 
                 if (waitingUserPromises.length > 0) {
-                    promise = waitingUserPromises.pop();
+                    let promise = waitingUserPromises.pop();
                     promise(result);
                 }
             } else {
-                var result = {
+                let result = {
                     group: host + response.group
-                }
+                };
                 if (waitingGroupPromises.length > 0) {
-                    promise = waitingGroupPromises.pop();
+                    let promise = waitingGroupPromises.pop();
                     promise(result);
                 }
             }
@@ -106,7 +115,7 @@ let io = require("socket.io-client");
         var _do_callbacks = function (what, e, handler) {
             if (!_callbacks.hasOwnProperty(what)) throw "Unsupported event " + what;
             var h;
-            for (i = 0; i < _callbacks[what].length; i++) {
+            for (let i = 0; i < _callbacks[what].length; i++) {
                 h = _callbacks[what][i];
                 if (handler === undefined) {
                     // all handlers to be invoked, except those with pending immeditate
@@ -122,8 +131,8 @@ let io = require("socket.io-client");
                 }
                 try {
                     h.call(self, e);
-                } catch (e) {
-                    _error("Error in " + what + ": " + h + ": " + e);
+                } catch (ex) {
+                    _error("Error in " + what + ": " + h + ": " + ex);
                 }
             }
         };
@@ -138,14 +147,14 @@ let io = require("socket.io-client");
 			Event
 
   		*/
-        var readystate = function () {
+        readystate = function () {
             var _readystate = STATE["CONNECTING"];
             // accessors
             return {
                 set: function (new_state) {
                     // check new state value
-                    found = false;
-                    for (key in STATE) {
+                    let found = false;
+                    for (let key in STATE) {
                         if (!STATE.hasOwnProperty(key)) continue;
                         if (STATE[key] === new_state) found = true;
                     }
@@ -195,7 +204,7 @@ let io = require("socket.io-client");
                 setTimeout(function () {
                     reject({
                         error: 'timeout'
-                    })
+                    });
                 }, options.maxTimeout);
             });
         };
@@ -216,7 +225,7 @@ let io = require("socket.io-client");
                 setTimeout(function () {
                     reject({
                         error: 'timeout'
-                    })
+                    });
                 }, options.maxTimeout);
             });
         };
@@ -339,6 +348,6 @@ let io = require("socket.io-client");
         _init();
 
         return self;
-    }
+    };
 
 export default MappingService;
