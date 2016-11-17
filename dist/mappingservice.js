@@ -6,7 +6,11 @@ Object.defineProperty(exports, "__esModule", {
 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 
-var io = require("socket.io-client");
+var _socket = require("socket.io-client");
+
+var _socket2 = _interopRequireDefault(_socket);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 /**
  * @class MappingService
@@ -72,7 +76,7 @@ var MappingService = function MappingService(url, options) {
     /* <!-- internal functions */
     var _init = function _init() {
 
-        _connection = io(connectURL, options);
+        _connection = (0, _socket2.default)(connectURL, options);
         _connection.on('connect', onConnect);
         readystate.set('connecting');
         if (_connection.connected === true) {

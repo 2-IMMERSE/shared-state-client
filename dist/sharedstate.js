@@ -3,7 +3,12 @@
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-var io = require("socket.io-client");
+
+var _socket = require("socket.io-client");
+
+var _socket2 = _interopRequireDefault(_socket);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 /**
  * @class SharedState
@@ -110,7 +115,7 @@ var SharedState = function SharedState(url, options) {
     /* <!-- internal functions */
     var _init = function _init() {
 
-        _connection = io(url, options);
+        _connection = (0, _socket2.default)(url, options);
         _connection.on('connect', onConnect);
         _connection.on('disconnect', onDisconnect);
 
