@@ -689,7 +689,7 @@ let io = require("socket.io-client");
             if (_connection) {
                 _connection.close();
                 _connection = null;
-                readystate.set('destroyed');
+                readystate.set('closed');
                 for (let prop in _callbacks) {
                     _callbacks[prop].length = 0;
                 }
