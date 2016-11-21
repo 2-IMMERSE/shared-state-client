@@ -150,13 +150,13 @@ var SharedState = function SharedState(url, options) {
     };
 
     /*
-    Internal method for invoking callback handlers
-    Handler is only supplied if on one specific callback is to used.
-    This is helpful for supporting "immediate events", i.e. events given directly
-    after handler is registered - on("change", handler);
-    If handler is not supplied, this means that all callbacks are to be fired.
-    This function is also sensitive to whether an "immediate event" has already been fired
-    or not. See callback registration below.
+        Internal method for invoking callback handlers
+         Handler is only supplied if on one specific callback is to used.
+        This is helpful for supporting "immediate events", i.e. events given directly
+        after handler is registered - on("change", handler);
+         If handler is not supplied, this means that all callbacks are to be fired.
+        This function is also sensitive to whether an "immediate event" has already been fired
+        or not. See callback registration below.
     */
     var _do_callbacks = function _do_callbacks(what, e, handler) {
         if (!_callbacks.hasOwnProperty(what)) throw "Unsupported event " + what;
@@ -466,13 +466,13 @@ var SharedState = function SharedState(url, options) {
     };
 
     /*
-    READYSTATE
-    encapsulate protected property _readystate by wrapping
-    getter and setter logic around it.
-    Closure ensures that all state transfers must go through set function.
-    Possibility to implement verification on all attempted state transferes
-    Event
-    */
+        READYSTATE
+         encapsulate protected property _readystate by wrapping
+        getter and setter logic around it.
+        Closure ensures that all state transfers must go through set function.
+        Possibility to implement verification on all attempted state transferes
+        Event
+     */
     readystate = function () {
         var _readystate = STATE["CONNECTING"];
         // accessors
@@ -505,48 +505,50 @@ var SharedState = function SharedState(url, options) {
      * @method on
      * @param {string} what change || presence || readystatechange
      * @param {function} handler the function to call on event
+     * @param ctx the 'this' context for the handler
+     * @param {boolean=} noInitialCallback set to true to disable the initial callback of the handler
      * @returns {Object} SharedState
      * @memberof SharedState
      */
     /*
-    register callback
-    The complexity of this method arise from the fact that we are to give
-    an "immediate callback" to the given handler.
-    In addition, I do not want to do so directly within the on() method.
-    As a programmer I would like to ensure that initialisation of an object
-    is completed BEFORE the object needs to process any callbacks from the
-    external world. This can be problematic if the object depends on events
-    from multiple other objects. For example, the internal initialisation code
-    needs to register handlers on external objects a and b.
-    a.on("event", internal_handler_a);
-    b.on("event", internal_handler_b);
-    However, if object a gives an callback immediately within on, this callback
-    will be processed BEFORE we have completed initialisation, i.e., any code
-    subsequent to a.on).
-    It is quite possible to make this be correct still, but I find nested handler
-    invocation complicated to think about, and I prefer to avoid the problem.
-    Therefore I like instead to make life easier by delaying "immediate callbacks"
-    using
-    setTimeout(_do_callbacks("event", e, handler), 0);
-    This however introduces two new problems. First, if you do :
-    o.on("event", handler);
-    o.off("event", handler);
-    you will get the "immediate callback" after off(), which is not what you
-    expect. This is avoided by checking that the given handler is indeed still
-    registered when executing _do_callbacks(). Alternatively one could cancel the
-    timeout within off().
-    Second, with the handler included in _callbacks[what] it is possible to receive
-    event callbacks before the delayed "immediate callback" is actually invoked.
-    This breaks the expectation the the "immediate callback" is the first callback.
-    This problem is avoided by flagging the callback handler with ".immediate_pending"
-    and dropping notifications that arrive before the "immediate_callback has executed".
-    Note however that the effect of this dropped notification is not lost. The effects
-    are taken into account when we calculate the "initial state" to be reported by the
-    "immediate callback". Crucially, we do this not in the on() method, but when the
-    delayed "immediate callback" actually is processed.
+        register callback
+         The complexity of this method arise from the fact that we are to give
+        an "immediate callback" to the given handler.
+         In addition, I do not want to do so directly within the on() method.
+         As a programmer I would like to ensure that initialisation of an object
+        is completed BEFORE the object needs to process any callbacks from the
+        external world. This can be problematic if the object depends on events
+        from multiple other objects. For example, the internal initialisation code
+        needs to register handlers on external objects a and b.
+         a.on("event", internal_handler_a);
+        b.on("event", internal_handler_b);
+         However, if object a gives an callback immediately within on, this callback
+        will be processed BEFORE we have completed initialisation, i.e., any code
+        subsequent to a.on).
+         It is quite possible to make this be correct still, but I find nested handler
+        invocation complicated to think about, and I prefer to avoid the problem.
+        Therefore I like instead to make life easier by delaying "immediate callbacks"
+        using
+         setTimeout(_do_callbacks("event", e, handler), 0);
+         This however introduces two new problems. First, if you do :
+         o.on("event", handler);
+        o.off("event", handler);
+         you will get the "immediate callback" after off(), which is not what you
+        expect. This is avoided by checking that the given handler is indeed still
+        registered when executing _do_callbacks(). Alternatively one could cancel the
+        timeout within off().
+         Second, with the handler included in _callbacks[what] it is possible to receive
+        event callbacks before the delayed "immediate callback" is actually invoked.
+        This breaks the expectation the the "immediate callback" is the first callback.
+        This problem is avoided by flagging the callback handler with ".immediate_pending"
+        and dropping notifications that arrive before the "immediate_callback has executed".
+        Note however that the effect of this dropped notification is not lost. The effects
+        are taken into account when we calculate the "initial state" to be reported by the
+        "immediate callback". Crucially, we do this not in the on() method, but when the
+        delayed "immediate callback" actually is processed.
     */
 
-    var on = function on(what, handler, ctx) {
+    var on = function on(what, handler, ctx, noInitialCallback) {
         if (!handler || typeof handler !== "function") throw "Illegal handler";
         if (!_callbacks.hasOwnProperty(what)) throw "Unsupported event " + what;
         if (ctx) {
@@ -556,6 +558,8 @@ var SharedState = function SharedState(url, options) {
         if (index === -1) {
             // register handler
             _callbacks[what].push(handler);
+            // stop here if we don't want an immediate callback
+            if (noInitialCallback) return self;
             // flag handler
             handler['_immediate_pending_' + what] = true;
             // do immediate callback
@@ -626,6 +630,27 @@ var SharedState = function SharedState(url, options) {
     };
 
     /**
+     * get presence of an agent ID
+     * @method getPresence
+     * @param {string} agentid agent ID
+     * @returns {?string} presence
+     * @memberof SharedState
+     */
+    var getPresence = function getPresence(agentid) {
+        return _presence[agentid];
+    };
+
+    /**
+     * get list of agent IDs for which there is a presence
+     * @method getPresenceList
+     * @returns {string[]} presence agent IDs
+     * @memberof SharedState
+     */
+    var getPresenceList = function getPresenceList() {
+        return Object.keys(_presence);
+    };
+
+    /**
      * sets the presence of the client ('connected' and 'disconnected' automatically set by server)
      * @method setPresence
      * @param {string} state the string to set the presence to
@@ -663,7 +688,7 @@ var SharedState = function SharedState(url, options) {
         if (_connection) {
             _connection.close();
             _connection = null;
-            readystate.set('destroyed');
+            readystate.set('closed');
             for (var prop in _callbacks) {
                 _callbacks[prop].length = 0;
             }
@@ -692,6 +717,8 @@ var SharedState = function SharedState(url, options) {
     self.on = on;
     self.off = off;
 
+    self.getPresence = getPresence;
+    self.getPresenceList = getPresenceList;
     self.setPresence = setPresence;
 
     self.destroy = destroy;
