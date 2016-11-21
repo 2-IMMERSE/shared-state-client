@@ -653,6 +653,26 @@ import io from "socket.io-client";
             return self;
         };
 
+        /**
+         * get presence of an agent ID
+         * @method getPresence
+         * @param {string} agentid agent ID
+         * @returns {?string} presence
+         * @memberof SharedState
+         */
+        var getPresence = function (agentid) {
+            return _presence[agentid];
+        };
+
+        /**
+         * get list of agent IDs for which there is a presence
+         * @method getPresenceList
+         * @returns {string[]} presence agent IDs
+         * @memberof SharedState
+         */
+        var getPresenceList = function () {
+            return Object.keys(_presence);
+        };
 
         /**
          * sets the presence of the client ('connected' and 'disconnected' automatically set by server)
@@ -723,6 +743,8 @@ import io from "socket.io-client";
         self.on = on;
         self.off = off;
 
+        self.getPresence = getPresence;
+        self.getPresenceList = getPresenceList;
         self.setPresence = setPresence;
 
         self.destroy = destroy;
