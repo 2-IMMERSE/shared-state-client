@@ -520,6 +520,8 @@ import io from "socket.io-client";
          * @method on
          * @param {string} what change || presence || readystatechange
          * @param {function} handler the function to call on event
+         * @param ctx the 'this' context for the handler
+         * @param {boolean=} noInitialCallback set to true to disable the initial callback of the handler
          * @returns {Object} SharedState
          * @memberof SharedState
          */
@@ -572,7 +574,7 @@ import io from "socket.io-client";
             delayed "immediate callback" actually is processed.
         */
 
-        var on = function (what, handler, ctx) {
+        var on = function (what, handler, ctx, noInitialCallback) {
             if (!handler || typeof handler !== "function") throw "Illegal handler";
             if (!_callbacks.hasOwnProperty(what)) throw "Unsupported event " + what;
             if (ctx) {
@@ -582,6 +584,8 @@ import io from "socket.io-client";
             if (index === -1) {
                 // register handler
                 _callbacks[what].push(handler);
+                // stop here if we don't want an immediate callback
+                if (noInitialCallback) return self;
                 // flag handler
                 handler['_immediate_pending_' + what] = true;
                 // do immediate callback
