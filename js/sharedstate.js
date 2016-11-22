@@ -333,29 +333,32 @@ import io from "socket.io-client";
          * @method setItem
          * @param {string} key the key to set
          * @param {Object} value the value to set
-         * @param {string} [options] tbd
+         * @param {Object=} options optional options object
+         * @param {boolean=} options.cas try to update value using compare and set semantics
          * @returns {Object} SharedState
          * @memberof SharedState
          */
         var setItem = function (key, value, options) {
-            if (_request) {
-                var state = {
-                    type: 'set',
-                    key: key,
-                    value: value
-                };
+            var state = {
+                type: 'set',
+                key: key,
+                value: value
+            };
+            if (typeof options === "object" && options.cas) {
+                if (_sharedStates.hasOwnProperty(key)) {
+                    state.type = "setCas";
+                    state.oldValue = _sharedStates[key];
+                } else {
+                    state.type = "setInsert";
+                }
+            }
 
+            if (_request) {
                 _stateChanges[key] = state;
             } else {
                 if (readystate.get() === STATE.OPEN) {
                     if (key) {
-                        var datagram = [
-                            {
-                                type: 'set',
-                                key: key,
-                                value: value
-                                }
-                            ];
+                        var datagram = [ state ];
                         _sendDatagram('changeState', datagram);
                     } else {
                         throw 'SHAREDSTATE - params with error - key:' + key + 'value:' + value;
@@ -373,11 +376,10 @@ import io from "socket.io-client";
          * removes a key from the sharedState
          * @method removeItem
          * @param {string} key the key to remove
-         * @param {string} [options] tbd
          * @returns {Object} SharedState
          * @memberof SharedState
          */
-        var removeItem = function (key, options) {
+        var removeItem = function (key) {
             if (_request) {
                 var state = {
                     type: 'remove',
