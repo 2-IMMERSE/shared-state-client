@@ -4,6 +4,8 @@ Object.defineProperty(exports, "__esModule", {
     value: true
 });
 
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
+
 var _socket = require("socket.io-client");
 
 var _socket2 = _interopRequireDefault(_socket);
@@ -327,27 +329,32 @@ var SharedState = function SharedState(url, options) {
      * @method setItem
      * @param {string} key the key to set
      * @param {Object} value the value to set
-     * @param {string} [options] tbd
+     * @param {Object=} options optional options object
+     * @param {boolean=} options.cas try to update value using compare and set semantics
      * @returns {Object} SharedState
      * @memberof SharedState
      */
     var setItem = function setItem(key, value, options) {
-        if (_request) {
-            var state = {
-                type: 'set',
-                key: key,
-                value: value
-            };
+        var state = {
+            type: 'set',
+            key: key,
+            value: value
+        };
+        if ((typeof options === "undefined" ? "undefined" : _typeof(options)) === "object" && options.cas) {
+            if (_sharedStates.hasOwnProperty(key)) {
+                state.type = "setCas";
+                state.oldValue = _sharedStates[key];
+            } else {
+                state.type = "setInsert";
+            }
+        }
 
+        if (_request) {
             _stateChanges[key] = state;
         } else {
             if (readystate.get() === STATE.OPEN) {
                 if (key) {
-                    var datagram = [{
-                        type: 'set',
-                        key: key,
-                        value: value
-                    }];
+                    var datagram = [state];
                     _sendDatagram('changeState', datagram);
                 } else {
                     throw 'SHAREDSTATE - params with error - key:' + key + 'value:' + value;
@@ -364,11 +371,10 @@ var SharedState = function SharedState(url, options) {
      * removes a key from the sharedState
      * @method removeItem
      * @param {string} key the key to remove
-     * @param {string} [options] tbd
      * @returns {Object} SharedState
      * @memberof SharedState
      */
-    var removeItem = function removeItem(key, options) {
+    var removeItem = function removeItem(key) {
         if (_request) {
             var state = {
                 type: 'remove',
