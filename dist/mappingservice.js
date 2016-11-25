@@ -185,7 +185,14 @@ var MappingService = function MappingService(url, options) {
     var getMappingCommon = function getMappingCommon(request) {
         return new Promise(function (fulfill, reject) {
             _connection.emit('getMapping', request, function (response) {
-                fulfill(parseMapping(response));
+                if (response.error) {
+                    reject({
+                        error: 'negative acknowledgement',
+                        msg: response.error
+                    });
+                } else {
+                    fulfill(parseMapping(response));
+                }
             });
             setTimeout(function () {
                 reject({
