@@ -233,7 +233,7 @@ var SharedState = function SharedState(url, options) {
                     _log('SHAREDSTATE - reveived "set" already saved or something wrong', datagram[i]);
                 }
             } else if (datagram[i].type == 'remove') {
-                if (datagram[i].key && _sharedStates[datagram[i].key]) {
+                if (datagram[i].key && _sharedStates.hasOwnProperty(datagram[i].key)) {
                     var _state = {
                         key: datagram[i].key,
                         value: _sharedStates[datagram[i].key],
@@ -282,7 +282,7 @@ var SharedState = function SharedState(url, options) {
 
         for (var i = 0, len = datagram.length; i < len; i++) {
             if (datagram[i].type == 'set') {
-                if (datagram[i].key && datagram[i].value && JSON.stringify(_sharedStates[datagram[i].key]) != JSON.stringify(datagram[i].value)) {
+                if (datagram[i].key && JSON.stringify(_sharedStates[datagram[i].key]) != JSON.stringify(datagram[i].value)) {
                     var state = {
                         key: datagram[i].key,
                         value: datagram[i].value,
