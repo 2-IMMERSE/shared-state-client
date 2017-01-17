@@ -224,7 +224,7 @@ var SharedState = function SharedState(url, options) {
                         value: datagram[i].value,
                         type: 'add'
                     };
-                    if (_sharedStates[datagram[i].key]) {
+                    if (_sharedStates[datagram[i].key] !== undefined) {
                         state.type = 'update';
                     }
                     _sharedStates[datagram[i].key] = datagram[i].value;
@@ -453,7 +453,7 @@ var SharedState = function SharedState(url, options) {
             return;
         } else {
             key = key + '';
-            if (_sharedStates[key]) {
+            if (_sharedStates[key] !== undefined) {
                 return JSON.parse(JSON.stringify(_sharedStates[key]));
             }
         }
