@@ -37,7 +37,8 @@ import io from "socket.io-client";
             'change': [],
             'remove': [],
             'readystatechange': [],
-            'presence': []
+            'presence': [],
+            'changeset': [],
         };
 
         var _sharedStates = {};
@@ -233,10 +234,9 @@ import io from "socket.io-client";
                         delete _sharedStates[datagram[i].key];
                         _do_callbacks('remove', state);
                     }
-
                 }
-
             }
+            if (datagram.length > 0) _do_callbacks('changeset');
         };
 
         onJoined = function (datagram) {
@@ -291,6 +291,7 @@ import io from "socket.io-client";
                     }
                 }
             }
+            if (datagram.length > 0) _do_callbacks('changeset');
             readystate.set('open');
             if (options.autoPresence === true) {
                 setPresence("online");
@@ -520,7 +521,7 @@ import io from "socket.io-client";
         /**
          * registers a function on event, function gets called immediatly
          * @method on
-         * @param {string} what change || presence || readystatechange
+         * @param {string} what change || presence || readystatechange || changeset
          * @param {function} handler the function to call on event
          * @param ctx the 'this' context for the handler
          * @param {boolean=} noInitialCallback set to true to disable the initial callback of the handler
@@ -630,6 +631,9 @@ import io from "socket.io-client";
                     case 'readystatechange':
                         _do_callbacks("readystatechange", readystate.get(), handler);
                         break;
+                    case 'changeset':
+                        _do_callbacks("changeset", undefined, handler);
+                        break;
                     }
                 }, 0);
             }
@@ -639,7 +643,7 @@ import io from "socket.io-client";
         /**
          * deregisters a function on event
          * @method off
-         * @param {string} what change || presence || readystatechange
+         * @param {string} what change || presence || readystatechange || changeset
          * @param {function} handler the function to call on event
          * @returns {Object} SharedState
          * @memberof SharedState
