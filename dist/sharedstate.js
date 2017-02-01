@@ -49,7 +49,8 @@ var SharedState = function SharedState(url, options) {
         'change': [],
         'remove': [],
         'readystatechange': [],
-        'presence': []
+        'presence': [],
+        'changeset': []
     };
 
     var _sharedStates = {};
@@ -98,7 +99,7 @@ var SharedState = function SharedState(url, options) {
 
     if (options.logStateInterval === true) {
         setInterval(function () {
-            _log('SharedSate(' + url + '):', _sharedStates);
+            _log('SharedState(' + url + '):', _sharedStates);
         }, 5000);
     }
 
@@ -244,6 +245,7 @@ var SharedState = function SharedState(url, options) {
                 }
             }
         }
+        if (datagram.length > 0) _do_callbacks('changeset');
     };
 
     onJoined = function onJoined(datagram) {
@@ -293,6 +295,7 @@ var SharedState = function SharedState(url, options) {
                 }
             }
         }
+        if (datagram.length > 0) _do_callbacks('changeset');
         readystate.set('open');
         if (options.autoPresence === true) {
             setPresence("online");
@@ -509,7 +512,7 @@ var SharedState = function SharedState(url, options) {
     /**
      * registers a function on event, function gets called immediatly
      * @method on
-     * @param {string} what change || presence || readystatechange
+     * @param {string} what change || presence || readystatechange || changeset
      * @param {function} handler the function to call on event
      * @param ctx the 'this' context for the handler
      * @param {boolean=} noInitialCallback set to true to disable the initial callback of the handler
@@ -610,6 +613,9 @@ var SharedState = function SharedState(url, options) {
                     case 'readystatechange':
                         _do_callbacks("readystatechange", readystate.get(), handler);
                         break;
+                    case 'changeset':
+                        _do_callbacks("changeset", undefined, handler);
+                        break;
                 }
             }, 0);
         }
@@ -619,7 +625,7 @@ var SharedState = function SharedState(url, options) {
     /**
      * deregisters a function on event
      * @method off
-     * @param {string} what change || presence || readystatechange
+     * @param {string} what change || presence || readystatechange || changeset
      * @param {function} handler the function to call on event
      * @returns {Object} SharedState
      * @memberof SharedState
