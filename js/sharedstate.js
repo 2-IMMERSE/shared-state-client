@@ -88,7 +88,7 @@ import io from "socket.io-client";
 
         if (options.logStateInterval === true) {
             setInterval(function () {
-                _log('SharedSate(' + url + '):', _sharedStates);
+                _log('SharedState(' + url + '):', _sharedStates);
             }, 5000);
         }
 
