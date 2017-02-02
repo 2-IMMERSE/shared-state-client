@@ -131,6 +131,9 @@ import io from "socket.io-client";
                 if (options.userId) {
                     datagram.userId = options.userId;
                 }
+                if (options.getOnInit) {
+                    datagram.sendInitState = true;
+                }
                 _sendDatagram('join', datagram);
             }
         };
@@ -243,8 +246,10 @@ import io from "socket.io-client";
             _log('SHAREDSTATE - got "joined"', datagram);
             if (datagram.agentID == options.agentid) {
                 if (options.getOnInit === true) {
-                    datagram = [];
-                    _sendDatagram('getInitState', datagram);
+                    if (!datagram.initStateComing) {
+                        datagram = [];
+                        _sendDatagram('getInitState', datagram);
+                    }
                 } else {
                     readystate.set('open');
                     if (options.autoPresence === true) {
