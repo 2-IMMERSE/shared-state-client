@@ -148,6 +148,9 @@ var SharedState = function SharedState(url, options) {
             if (options.userId) {
                 datagram.userId = options.userId;
             }
+            if (options.getOnInit) {
+                datagram.sendInitState = true;
+            }
             _sendDatagram('join', datagram);
         }
     };
@@ -252,8 +255,10 @@ var SharedState = function SharedState(url, options) {
         _log('SHAREDSTATE - got "joined"', datagram);
         if (datagram.agentID == options.agentid) {
             if (options.getOnInit === true) {
-                datagram = [];
-                _sendDatagram('getInitState', datagram);
+                if (!datagram.initStateComing) {
+                    datagram = [];
+                    _sendDatagram('getInitState', datagram);
+                }
             } else {
                 readystate.set('open');
                 if (options.autoPresence === true) {
@@ -728,6 +733,8 @@ var SharedState = function SharedState(url, options) {
     self.keys = keys;
     self.on = on;
     self.off = off;
+    self.addEventListener = on;
+    self.removeEventListener = off;
 
     self.getPresence = getPresence;
     self.getPresenceList = getPresenceList;
