@@ -753,6 +753,8 @@ import io from "socket.io-client";
         self.keys = keys;
         self.on = on;
         self.off = off;
+        self.addEventListener = on;
+        self.removeEventListener = off;
 
         self.getPresence = getPresence;
         self.getPresenceList = getPresenceList;
