@@ -27,6 +27,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  * @param {boolean} [options.autoPresence] set presence to "online" on connect, Default = true
  * @param {boolean} [options.autoClean] auto clean (???), Default = true
  * @param {boolean} [options.multiplex] enable socket.io multiplexing, Default = socket.io default
+ * @param [options.socketIo] override bundled socket.io import
  * @returns {Object} SharedState
  * @author Andreas Bosl <bosl@irt.de>
  * @copyright 2014 Institut für Rundfunktechnik GmbH, All rights reserved.
@@ -68,6 +69,8 @@ var SharedState = function SharedState(url, options) {
     if (options.reconnection !== false) {
         options.reconnection = true;
     }
+
+    var socketIo = options.socketIo || _socket2.default;
 
     var _log = function _log() {};
     var _error = function _error() {};
@@ -118,7 +121,7 @@ var SharedState = function SharedState(url, options) {
     /* <!-- internal functions */
     var _init = function _init() {
 
-        _connection = (0, _socket2.default)(url, options);
+        _connection = socketIo(url, options);
         _connection.on('connect', onConnect);
         _connection.on('disconnect', onDisconnect);
 

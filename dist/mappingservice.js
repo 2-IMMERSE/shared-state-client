@@ -23,6 +23,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  * @param {function} [options.errorFunction] function to call for error messages, overrides logToConsole
  * @param {number} [options.maxTimeout] timeout value in ms, Default = 2000
  * @param {boolean} [options.multiplex] enable socket.io multiplexing, Default = socket.io default
+ * @param [options.socketIo] override bundled socket.io import
  * @returns {Object} MappingService
  * @author Andreas Bosl <bosl@irt.de>
  * @copyright 2014 Institut für Rundfunktechnik GmbH, All rights reserved.
@@ -56,6 +57,8 @@ var MappingService = function MappingService(url, options) {
         options = {};
     }
 
+    var socketIo = options.socketIo || _socket2.default;
+
     if (!options.maxTimeout) {
         options.maxTimeout = 2000;
     }
@@ -76,7 +79,7 @@ var MappingService = function MappingService(url, options) {
     /* <!-- internal functions */
     var _init = function _init() {
 
-        _connection = (0, _socket2.default)(connectURL, options);
+        _connection = socketIo(connectURL, options);
         _connection.on('connect', onConnect);
         readystate.set('connecting');
         if (_connection.connected === true) {
@@ -324,6 +327,27 @@ var MappingService = function MappingService(url, options) {
         return self;
     };
 
+    /**
+     * Destroy the instance
+     * After this method is called, the instance may no longer be used, other than further calls
+     * to destroy().
+     * The result of attempting to use the instance after destruction is undefined.
+     * After destroy() has been called, further calls to destroy() have no effect.
+     *
+     * @method destroy
+     * @memberof SharedState
+     */
+    var destroy = function destroy() {
+        if (_connection) {
+            _connection.close();
+            _connection = null;
+            readystate.set('closed');
+            for (var prop in _callbacks) {
+                _callbacks[prop].length = 0;
+            }
+        }
+    };
+
     /* API functions --> */
 
     /* <!-- public */
@@ -337,6 +361,8 @@ var MappingService = function MappingService(url, options) {
 
     self.on = on;
     self.off = off;
+
+    self.destroy = destroy;
 
     /* public --> */
 
