@@ -11,6 +11,7 @@ import io from "socket.io-client";
      * @param {function} [options.errorFunction] function to call for error messages, overrides logToConsole
      * @param {number} [options.maxTimeout] timeout value in ms, Default = 2000
      * @param {boolean} [options.multiplex] enable socket.io multiplexing, Default = socket.io default
+     * @param [options.socketIo] override bundled socket.io import
      * @returns {Object} MappingService
      * @author Andreas Bosl <bosl@irt.de>
      * @copyright 2014 Institut für Rundfunktechnik GmbH, All rights reserved.
@@ -44,6 +45,8 @@ import io from "socket.io-client";
             options = {};
         }
 
+        var socketIo = options.socketIo || io;
+
         if (!options.maxTimeout){
             options.maxTimeout = 2000;
         }
@@ -63,7 +66,7 @@ import io from "socket.io-client";
         /* <!-- internal functions */
         var _init = function () {
 
-            _connection = io(connectURL, options);
+            _connection = socketIo(connectURL, options);
             _connection.on('connect', onConnect);
             readystate.set('connecting');
             if (_connection.connected === true) {

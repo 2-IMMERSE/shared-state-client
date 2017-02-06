@@ -15,6 +15,7 @@ import io from "socket.io-client";
      * @param {boolean} [options.autoPresence] set presence to "online" on connect, Default = true
      * @param {boolean} [options.autoClean] auto clean (???), Default = true
      * @param {boolean} [options.multiplex] enable socket.io multiplexing, Default = socket.io default
+     * @param [options.socketIo] override bundled socket.io import
      * @returns {Object} SharedState
      * @author Andreas Bosl <bosl@irt.de>
      * @copyright 2014 Institut für Rundfunktechnik GmbH, All rights reserved.
@@ -56,6 +57,8 @@ import io from "socket.io-client";
         if (options.reconnection !== false) {
             options.reconnection = true;
         }
+
+        var socketIo = options.socketIo || io;
 
         var _log = function() {};
         var _error = function() {};
@@ -99,7 +102,7 @@ import io from "socket.io-client";
         var _init = function () {
 
 
-            _connection = io(url, options);
+            _connection = socketIo(url, options);
             _connection.on('connect', onConnect);
             _connection.on('disconnect', onDisconnect);
 
