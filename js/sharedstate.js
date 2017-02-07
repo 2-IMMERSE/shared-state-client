@@ -49,6 +49,8 @@ import io from "socket.io-client";
 
         var _stateChanges = {};
 
+        var capabilities = {};
+
         /* <!-- defaults */
         options = options || {};
         if (options instanceof String) {
@@ -96,7 +98,7 @@ import io from "socket.io-client";
             }, 5000);
         }
 
-        let onConnect, onDisconnect, onJoined, onStatus, onChangeState, onInitState, onError, _autoClean, _sendDatagram, readystate, setPresence;
+        let onConnect, onDisconnect, onJoined, onStatus, onChangeState, onInitState, onGetCaps, onError, _autoClean, _sendDatagram, readystate, setPresence;
 
         /* <!-- internal functions */
         var _init = function () {
@@ -110,6 +112,7 @@ import io from "socket.io-client";
             _connection.on('status', onStatus);
             _connection.on('changeState', onChangeState);
             _connection.on('initState', onInitState);
+            _connection.on('capabilities', onGetCaps);
 
             _connection.on('ssError', onError);
             readystate.set('connecting');
@@ -305,6 +308,13 @@ import io from "socket.io-client";
                 setPresence("online");
             }
 
+        };
+
+
+        onGetCaps = function (datagram) {
+            _log('CAPABILITIES', datagram);
+
+            if (datagram && typeof datagram === "object") capabilities = datagram;
         };
 
 
