@@ -61,6 +61,8 @@ var SharedState = function SharedState(url, options) {
 
     var _stateChanges = {};
 
+    var capabilities = {};
+
     /* <!-- defaults */
     options = options || {};
     if (options instanceof String) {
@@ -112,6 +114,7 @@ var SharedState = function SharedState(url, options) {
         onStatus = void 0,
         onChangeState = void 0,
         onInitState = void 0,
+        onGetCaps = void 0,
         onError = void 0,
         _autoClean = void 0,
         _sendDatagram = void 0,
@@ -129,6 +132,7 @@ var SharedState = function SharedState(url, options) {
         _connection.on('status', onStatus);
         _connection.on('changeState', onChangeState);
         _connection.on('initState', onInitState);
+        _connection.on('capabilities', onGetCaps);
 
         _connection.on('ssError', onError);
         readystate.set('connecting');
@@ -310,6 +314,12 @@ var SharedState = function SharedState(url, options) {
         }
     };
 
+    onGetCaps = function onGetCaps(datagram) {
+        _log('CAPABILITIES', datagram);
+
+        if (datagram && (typeof datagram === "undefined" ? "undefined" : _typeof(datagram)) === "object") capabilities = datagram;
+    };
+
     _autoClean = function _autoClean(agentid) {
         if (!options.autoClean) {
             return;
@@ -328,9 +338,9 @@ var SharedState = function SharedState(url, options) {
     /* incoming socket functions --> */
 
     /* <!-- outgoing socket functions */
-    _sendDatagram = function _sendDatagram(type, datagram) {
+    _sendDatagram = function _sendDatagram(type, datagram, completion) {
         _log('SHAREDSTATE - sending', datagram);
-        _connection.emit(type, datagram);
+        _connection.emit(type, datagram, completion);
     };
     /* outgoing socket functions --> */
 
@@ -424,21 +434,25 @@ var SharedState = function SharedState(url, options) {
     /**
      * stops the request builder and sends all changes
      * @method send
+     * @param {Function=} completion optional completion callback, requires server support
      * @returns {Object} SharedState
      * @memberof SharedState
      */
-    var send = function send() {
+    var send = function send(completion) {
         if (readystate.get() == STATE.OPEN) {
             _request = false;
-            if (Object.keys(_stateChanges).length > 0) {
+            var keys = Object.keys(_stateChanges);
+            if (keys.length > 0) {
                 var datagram = [];
-                var keys = Object.keys(_stateChanges);
                 for (var i = 0; i < keys.length; i++) {
                     datagram.push(_stateChanges[keys[i]]);
                 }
-                _sendDatagram('changeState', datagram);
+                _sendDatagram('changeState', datagram, capabilities.changeStateAck ? completion : null);
 
                 _stateChanges = {};
+            }
+            if (completion && (!keys.length || !capabilities.changeStateAck)) {
+                completion();
             }
         } else {
             throw 'SHAREDSTATE - send not possible - connection status:' + readystate.get();
