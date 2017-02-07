@@ -339,9 +339,9 @@ import io from "socket.io-client";
 
 
         /* <!-- outgoing socket functions */
-        _sendDatagram = function (type, datagram) {
+        _sendDatagram = function (type, datagram, completion) {
             _log('SHAREDSTATE - sending', datagram);
-            _connection.emit(type, datagram);
+            _connection.emit(type, datagram, completion);
         };
         /* outgoing socket functions --> */
 
@@ -439,21 +439,25 @@ import io from "socket.io-client";
         /**
          * stops the request builder and sends all changes
          * @method send
+         * @param {Function=} completion optional completion callback, requires server support
          * @returns {Object} SharedState
          * @memberof SharedState
          */
-        var send = function () {
+        var send = function (completion) {
             if (readystate.get() == STATE.OPEN) {
                 _request = false;
-                if (Object.keys(_stateChanges).length > 0) {
+                var keys = Object.keys(_stateChanges);
+                if (keys.length > 0) {
                     var datagram = [];
-                    var keys = Object.keys(_stateChanges);
                     for (var i = 0; i < keys.length; i++) {
                         datagram.push(_stateChanges[keys[i]]);
                     }
-                    _sendDatagram('changeState', datagram);
+                    _sendDatagram('changeState', datagram, capabilities.changeStateAck ? completion : null);
 
                     _stateChanges = {};
+                }
+                if (completion && (!keys.length || !capabilities.changeStateAck)) {
+                    completion();
                 }
             } else {
                 throw 'SHAREDSTATE - send not possible - connection status:' + readystate.get();
