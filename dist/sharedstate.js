@@ -340,7 +340,11 @@ var SharedState = function SharedState(url, options) {
     /* <!-- outgoing socket functions */
     _sendDatagram = function _sendDatagram(type, datagram, completion) {
         _log('SHAREDSTATE - sending', datagram);
-        _connection.emit(type, datagram, completion);
+        if (completion) {
+            _connection.emit(type, datagram, completion);
+        } else {
+            _connection.emit(type, datagram);
+        }
     };
     /* outgoing socket functions --> */
 
@@ -447,11 +451,16 @@ var SharedState = function SharedState(url, options) {
                 for (var i = 0; i < keys.length; i++) {
                     datagram.push(_stateChanges[keys[i]]);
                 }
-                _sendDatagram('changeState', datagram, capabilities.changeStateAck ? completion : null);
+                if (capabilities.changeStateAck && completion) {
+                    _sendDatagram('changeState', datagram, completion);
+                    completion = null;
+                } else {
+                    _sendDatagram('changeState', datagram);
+                }
 
                 _stateChanges = {};
             }
-            if (completion && (!keys.length || !capabilities.changeStateAck)) {
+            if (completion) {
                 completion();
             }
         } else {
