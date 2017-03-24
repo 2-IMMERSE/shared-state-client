@@ -145,7 +145,7 @@ var MappingService = function MappingService(url, options) {
             try {
                 h.call(self, e);
             } catch (ex) {
-                _error("Error in " + what + ": " + h + ": " + ex);
+                _error("Error in " + what + ": ", +ex);
             }
         }
     };
