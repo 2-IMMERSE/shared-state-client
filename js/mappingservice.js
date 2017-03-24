@@ -136,7 +136,7 @@ import io from "socket.io-client";
                 try {
                     h.call(self, e);
                 } catch (ex) {
-                    _error("Error in " + what + ": " + h + ": " + ex);
+                    _error("Error in " + what + ": ", + ex);
                 }
             }
         };
